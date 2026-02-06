@@ -1,0 +1,26 @@
+[
+  {
+    "path": "test-checks.txt",
+    "start_line": 1,
+    "end_line": 1,
+    "annotation_level": "warning",
+    "title": "Code quality warning",
+    "message": "This line could be improved for better readability"
+  },
+  {
+    "path": "test-checks.txt",
+    "start_line": 1,
+    "end_line": 1,
+    "annotation_level": "notice",
+    "title": "Documentation note",
+    "message": "Consider adding more context to this file"
+  },
+  {
+    "path": "README.md",
+    "start_line": 1,
+    "end_line": 1,
+    "annotation_level": "failure",
+    "title": "Critical issue",
+    "message": "This needs immediate attention - example of failure level annotation"
+  }
+]
