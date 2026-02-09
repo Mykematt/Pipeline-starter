@@ -1,0 +1,13 @@
+steps:
+  - label: "Test environment variable"
+    command: |
+      echo "ENVIRONMENT is set to: ${ENVIRONMENT}"
+      echo "This should show the value selected in the block step"
+
+  - label: "Terraform Plan (simulated)"
+    concurrency: 1
+    concurrency_group: "terraform/${ENVIRONMENT}"
+    command: |
+      echo "Running terraform for environment: ${ENVIRONMENT}"
+      echo "Concurrency group: terraform/${ENVIRONMENT}"
+      echo "Artifact path would be: .terraform/${ENVIRONMENT}/plan-${ENVIRONMENT}.tfplan"
