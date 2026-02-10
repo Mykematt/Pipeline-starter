@@ -1,9 +1,11 @@
 steps:
   - label: "Setup Ruby"
     command: |
-      eval "$(mise activate bash)"
-      mise install ruby
-
+      eval "$(rbenv init -)"
+      rbenv install $(cat .ruby-version) --skip-existing
+      
+      # rbenv automatically uses the version from .ruby-version
+      ruby --version
   - label: "Job with dynamic priority"
     command: |
       if [ "$BUILDKITE_RETRY_COUNT" -eq 0 ]; then
