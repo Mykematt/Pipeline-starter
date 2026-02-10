@@ -1,5 +1,10 @@
 steps:
-  - label: "Job with dynamic priorityy"
+  - label: "Setup Ruby"
+    command: |
+      eval "$(mise activate bash)"
+      mise install ruby
+
+  - label: "Job with dynamic priority"
     command: |
       if [ "$BUILDKITE_RETRY_COUNT" -eq 0 ]; then
         PRIORITY=1
