@@ -1,24 +1,15 @@
 steps:
-  - label: "Setup Ruby"
-    command: |
-      eval "$(rbenv init -)"
-      rbenv install $(cat .ruby-version) --skip-existing
+  - group: "Test Group"
+    key: "initial-group"
+    steps:
+      - label: "Initial step"
+        command: "echo 'Running initial step'"
       
-      # rbenv automatically uses the version from .ruby-version
-      ruby --version
-  - label: "Job with dynamic priority"
-    command: |
-      if [ "$BUILDKITE_RETRY_COUNT" -eq 0 ]; then
-        PRIORITY=1
-      else
-        PRIORITY=0
-      fi
-      
-      buildkite-agent pipeline upload <<YAML
-      steps:
-        - label: "Actual work (priority \$PRIORITY)"
-          command: "echo 'Running tests'; exit 1"
-          priority: \$PRIORITY
-          retry:
-            automatic: true
-      YAML
+      - label: "Dynamic upload"
+        command: |
+          echo "Checking some condition..."
+          # Simulate checking a result
+          if [ true ]; then
+            echo "Condition met, uploading more steps"
+            buildkite-agent pipeline upload .buildkite/dynamic-steps.yml
+          fi

@@ -1,0 +1,8 @@
+steps:
+  - group: "Test Group"
+    steps:
+      - label: "Dynamically added step 1"
+        command: "echo 'This was added dynamically!'"
+      
+      - label: "Dynamically added step 2"
+        command: "echo 'This was also added dynamically!'"

@@ -1,0 +1,19 @@
+agents:
+  queue: "mac"
+
+steps:
+  - block: "Choose target environment"
+    fields:
+      - select: "Environment"
+        key: "release-name"
+        required: true
+        options:
+          - label: "testing"
+            value: "testing"
+          - label: "staging"
+            value: "staging"
+
+  - wait
+
+  - label: ":pipeline: Upload deploy pipeline"
+    command: buildkite-agent pipeline upload .buildkite/deploy.yml
