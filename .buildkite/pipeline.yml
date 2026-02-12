@@ -1,8 +1,9 @@
+agents:
+  queue: "linux"
+
 steps:
   - label: ":rocket: Test 1 - Check BUILDKITE_COMMIT Resolution"
     key: "test-commit-resolution"
-    agents:
-      queue: "linux"
     command: |
       echo "=== Testing BUILDKITE_COMMIT Resolution ==="
       echo "BUILDKITE_COMMIT: ${BUILDKITE_COMMIT}"
@@ -26,8 +27,6 @@ steps:
 
   - label: ":mag: Test 2 - Check Triggered Build Env Vars"
     key: "test-triggered-vars"
-    agents:
-      queue: "linux"
     command: |
       echo "=== Triggered Build Variables ==="
       echo "BUILDKITE_SOURCE: ${BUILDKITE_SOURCE:-NOT_SET}"
@@ -48,8 +47,6 @@ steps:
 
   - label: ":package: Test 3 - Upload Parent Commit Artifact"
     key: "upload-parent-artifact"
-    agents:
-      queue: "linux"
     command: |
       echo "=== Creating artifact with parent commit info ==="
       RESOLVED_COMMIT=$(git rev-parse HEAD)
@@ -63,8 +60,6 @@ steps:
 
   - label: ":link: Test 4 - Trigger with Explicit PARENT_COMMIT_SHA"
     key: "trigger-with-parent-sha"
-    agents:
-      queue: "linux"
     trigger: "pipeline-starter"
     build:
       message: "Test: Explicit PARENT_COMMIT_SHA env var"
@@ -76,8 +71,6 @@ steps:
 
   - label: ":link: Test 5 - Trigger WITHOUT Parent Commit"
     key: "trigger-without-parent-sha"
-    agents:
-      queue: "linux"
     trigger: "pipeline-starter"
     build:
       message: "Test: No PARENT_COMMIT_SHA (API lookup needed)"
@@ -90,8 +83,6 @@ steps:
 
   - label: ":package: Test 6 - Download Parent Artifact"
     key: "test-artifact-download"
-    agents:
-      queue: "linux"
     command: |
       echo "=== Testing artifact download from parent build ==="
       if [ "${BUILDKITE_SOURCE}" = "trigger_job" ]; then
