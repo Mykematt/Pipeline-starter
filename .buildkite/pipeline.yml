@@ -58,9 +58,9 @@ steps:
 
   - wait
 
-  - label: ":link: Test 4 - Trigger with Explicit PARENT_COMMIT_SHA"
+  - label: ":link: Test 4 - Trigger SANDBOX with Explicit PARENT_COMMIT_SHA"
     key: "trigger-with-parent-sha"
-    trigger: "pipeline-starter"
+    trigger: "sandbox"
     build:
       message: "Test: Explicit PARENT_COMMIT_SHA env var"
       commit: "${BUILDKITE_COMMIT}"
@@ -69,9 +69,9 @@ steps:
         PARENT_COMMIT_SHA: "${BUILDKITE_COMMIT}"
         TEST_METHOD: "explicit_env_var"
 
-  - label: ":link: Test 5 - Trigger WITHOUT Parent Commit"
+  - label: ":link: Test 5 - Trigger SANDBOX WITHOUT Parent Commit"
     key: "trigger-without-parent-sha"
-    trigger: "pipeline-starter"
+    trigger: "sandbox"
     build:
       message: "Test: No PARENT_COMMIT_SHA (API lookup needed)"
       commit: "${BUILDKITE_COMMIT}"
