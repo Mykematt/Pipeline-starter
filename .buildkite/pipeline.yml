@@ -1,15 +1,113 @@
 steps:
-  - group: "Test Group"
-    key: "initial-group"
-    steps:
-      - label: "Initial step"
-        command: "echo 'Running initial step'"
-      
-      - label: "Dynamic upload"
-        command: |
-          echo "Checking some condition..."
-          # Simulate checking a result
-          if [ true ]; then
-            echo "Condition met, uploading more steps"
-            buildkite-agent pipeline upload .buildkite/dynamic-steps.yml
-          fi
+  - label: ":rocket: Test 1 - Check BUILDKITE_COMMIT Resolution"
+    key: "test-commit-resolution"
+    agents:
+      queue: "linux"
+    command: |
+      echo "=== Testing BUILDKITE_COMMIT Resolution ==="
+      echo "BUILDKITE_COMMIT: ${BUILDKITE_COMMIT}"
+      echo "BUILDKITE_BRANCH: ${BUILDKITE_BRANCH}"
+      echo "BUILDKITE_SOURCE: ${BUILDKITE_SOURCE:-not_triggered}"
+      echo ""
+      echo "Is BUILDKITE_COMMIT 'HEAD'? $([ \"${BUILDKITE_COMMIT}\" = \"HEAD\" ] && echo 'YES' || echo 'NO')"
+      echo "Is it a full SHA? $(echo \"${BUILDKITE_COMMIT}\" | grep -E '^[0-9a-f]{40}$' && echo 'YES' || echo 'NO')"
+      echo ""
+      echo "=== Resolving with git rev-parse HEAD ==="
+      RESOLVED_COMMIT=$(git rev-parse HEAD)
+      echo "Resolved commit: ${RESOLVED_COMMIT}"
+      echo ""
+      if [ "${BUILDKITE_COMMIT}" = "${RESOLVED_COMMIT}" ]; then
+        echo "✓ BUILDKITE_COMMIT is already resolved (experimental flag working OR commit was SHA)"
+      else
+        echo "✗ BUILDKITE_COMMIT differs from resolved commit"
+        echo "  BUILDKITE_COMMIT: ${BUILDKITE_COMMIT}"
+        echo "  Resolved:         ${RESOLVED_COMMIT}"
+      fi
+
+  - label: ":mag: Test 2 - Check Triggered Build Env Vars"
+    key: "test-triggered-vars"
+    agents:
+      queue: "linux"
+    command: |
+      echo "=== Triggered Build Variables ==="
+      echo "BUILDKITE_SOURCE: ${BUILDKITE_SOURCE:-NOT_SET}"
+      echo "BUILDKITE_TRIGGERED_FROM_BUILD_ID: ${BUILDKITE_TRIGGERED_FROM_BUILD_ID:-NOT_SET}"
+      echo "BUILDKITE_TRIGGERED_FROM_BUILD_NUMBER: ${BUILDKITE_TRIGGERED_FROM_BUILD_NUMBER:-NOT_SET}"
+      echo "BUILDKITE_TRIGGERED_FROM_BUILD_PIPELINE_SLUG: ${BUILDKITE_TRIGGERED_FROM_BUILD_PIPELINE_SLUG:-NOT_SET}"
+      echo ""
+      echo "=== Testing for BUILDKITE_TRIGGERED_FROM_COMMIT_SHA ==="
+      if [ -n "${BUILDKITE_TRIGGERED_FROM_COMMIT_SHA:-}" ]; then
+        echo "✓ BUILDKITE_TRIGGERED_FROM_COMMIT_SHA exists: ${BUILDKITE_TRIGGERED_FROM_COMMIT_SHA}"
+      else
+        echo "✗ BUILDKITE_TRIGGERED_FROM_COMMIT_SHA does NOT exist (expected)"
+      fi
+      echo ""
+      echo "=== Custom Parent Commit (if passed via env) ==="
+      echo "PARENT_COMMIT_SHA: ${PARENT_COMMIT_SHA:-NOT_SET}"
+      echo "TEST_METHOD: ${TEST_METHOD:-NOT_SET}"
+
+  - label: ":package: Test 3 - Upload Parent Commit Artifact"
+    key: "upload-parent-artifact"
+    agents:
+      queue: "linux"
+    command: |
+      echo "=== Creating artifact with parent commit info ==="
+      RESOLVED_COMMIT=$(git rev-parse HEAD)
+      echo "BUILDKITE_COMMIT: ${BUILDKITE_COMMIT}" > parent-commit-info.txt
+      echo "Resolved commit: ${RESOLVED_COMMIT}" >> parent-commit-info.txt
+      echo "Build ID: ${BUILDKITE_BUILD_ID}" >> parent-commit-info.txt
+      cat parent-commit-info.txt
+      buildkite-agent artifact upload parent-commit-info.txt
+
+  - wait
+
+  - label: ":link: Test 4 - Trigger with Explicit PARENT_COMMIT_SHA"
+    key: "trigger-with-parent-sha"
+    agents:
+      queue: "linux"
+    trigger: "pipeline-starter"
+    build:
+      message: "Test: Explicit PARENT_COMMIT_SHA env var"
+      commit: "${BUILDKITE_COMMIT}"
+      branch: "${BUILDKITE_BRANCH}"
+      env:
+        PARENT_COMMIT_SHA: "${BUILDKITE_COMMIT}"
+        TEST_METHOD: "explicit_env_var"
+
+  - label: ":link: Test 5 - Trigger WITHOUT Parent Commit"
+    key: "trigger-without-parent-sha"
+    agents:
+      queue: "linux"
+    trigger: "pipeline-starter"
+    build:
+      message: "Test: No PARENT_COMMIT_SHA (API lookup needed)"
+      commit: "${BUILDKITE_COMMIT}"
+      branch: "${BUILDKITE_BRANCH}"
+      env:
+        TEST_METHOD: "no_parent_env"
+
+  - wait
+
+  - label: ":package: Test 6 - Download Parent Artifact"
+    key: "test-artifact-download"
+    agents:
+      queue: "linux"
+    command: |
+      echo "=== Testing artifact download from parent build ==="
+      if [ "${BUILDKITE_SOURCE}" = "trigger_job" ]; then
+        echo "This is a triggered build"
+        echo "Parent build ID: ${BUILDKITE_TRIGGERED_FROM_BUILD_ID}"
+        echo ""
+        echo "Attempting to download parent artifact..."
+        buildkite-agent artifact download "parent-commit-info.txt" . --build "${BUILDKITE_TRIGGERED_FROM_BUILD_ID}" || echo "Download failed"
+        
+        if [ -f "parent-commit-info.txt" ]; then
+          echo ""
+          echo "✓ Successfully downloaded artifact from parent:"
+          cat parent-commit-info.txt
+        else
+          echo "✗ Artifact download failed"
+        fi
+      else
+        echo "Not a triggered build, skipping artifact download test"
+      fi

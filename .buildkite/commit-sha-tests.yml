@@ -1,0 +1,65 @@
+# Test pipeline for triggered builds
+# This gets triggered by the parent pipeline
+
+steps:
+  - label: ":mag: Check triggered build env vars"
+    key: "check-triggered-env"
+    command: |
+      echo "=== Triggered Build Environment Variables ==="
+      echo "BUILDKITE_TRIGGERED_FROM_BUILD_ID: ${BUILDKITE_TRIGGERED_FROM_BUILD_ID:-NOT_SET}"
+      echo "BUILDKITE_TRIGGERED_FROM_BUILD_NUMBER: ${BUILDKITE_TRIGGERED_FROM_BUILD_NUMBER:-NOT_SET}"
+      echo "BUILDKITE_TRIGGERED_FROM_BUILD_PIPELINE_SLUG: ${BUILDKITE_TRIGGERED_FROM_BUILD_PIPELINE_SLUG:-NOT_SET}"
+      echo "BUILDKITE_SOURCE: ${BUILDKITE_SOURCE:-NOT_SET}"
+      echo ""
+      echo "=== Check for BUILDKITE_TRIGGERED_FROM_COMMIT_SHA ==="
+      if [ -n "${BUILDKITE_TRIGGERED_FROM_COMMIT_SHA:-}" ]; then
+        echo "✓ BUILDKITE_TRIGGERED_FROM_COMMIT_SHA exists: ${BUILDKITE_TRIGGERED_FROM_COMMIT_SHA}"
+      else
+        echo "✗ BUILDKITE_TRIGGERED_FROM_COMMIT_SHA does NOT exist (as expected)"
+      fi
+      echo ""
+      echo "=== Current Build Commit ==="
+      echo "BUILDKITE_COMMIT: ${BUILDKITE_COMMIT}"
+      echo "Is it HEAD? $([ \"${BUILDKITE_COMMIT}\" = \"HEAD\" ] && echo 'YES' || echo 'NO')"
+      echo "Is it a full SHA? $(echo \"${BUILDKITE_COMMIT}\" | grep -E '^[0-9a-f]{40}$' && echo 'YES' || echo 'NO')"
+      echo ""
+      echo "=== Custom Parent Commit (if passed) ==="
+      echo "PARENT_COMMIT_SHA: ${PARENT_COMMIT_SHA:-NOT_SET}"
+
+  - label: ":git: Resolve commit after checkout"
+    key: "resolve-commit"
+    command: |
+      echo "=== Before git rev-parse ==="
+      echo "BUILDKITE_COMMIT: ${BUILDKITE_COMMIT}"
+      echo ""
+      echo "=== After git rev-parse HEAD ==="
+      RESOLVED_COMMIT=$(git rev-parse HEAD)
+      echo "Resolved commit: ${RESOLVED_COMMIT}"
+      echo ""
+      echo "=== Comparison ==="
+      if [ "${BUILDKITE_COMMIT}" = "${RESOLVED_COMMIT}" ]; then
+        echo "✓ BUILDKITE_COMMIT matches resolved commit"
+      else
+        echo "✗ BUILDKITE_COMMIT (${BUILDKITE_COMMIT}) does NOT match resolved commit (${RESOLVED_COMMIT})"
+        echo "This is expected if BUILDKITE_COMMIT was HEAD and experimental flag is not enabled"
+      fi
+
+  - label: ":package: Test artifact download from parent"
+    key: "test-artifact-download"
+    command: |
+      echo "=== Attempting to download artifact from parent build ==="
+      echo "Parent build ID: ${BUILDKITE_TRIGGERED_FROM_BUILD_ID:-NOT_SET}"
+      
+      if [ -n "${BUILDKITE_TRIGGERED_FROM_BUILD_ID:-}" ]; then
+        echo "Attempting download..."
+        buildkite-agent artifact download "parent-commit-info.txt" . --build "${BUILDKITE_TRIGGERED_FROM_BUILD_ID}" || echo "Download failed (might not exist)"
+        
+        if [ -f "parent-commit-info.txt" ]; then
+          echo "✓ Successfully downloaded parent commit info:"
+          cat parent-commit-info.txt
+        else
+          echo "✗ Artifact not found (parent build might not have uploaded it)"
+        fi
+      else
+        echo "✗ Not a triggered build, skipping"
+      fi
